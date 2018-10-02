@@ -1,0 +1,249 @@
+---
+title: "How to link JSDM models to stochastic Lotka-Volterra models?"
+author: "Georges Kunstler"
+bibliography: references.bib
+csl: "ecology.csl"
+output: pdf_document
+---
+
+# Authors affiliations
+
+Georges Kunstler^1^,
+
+^1^ *Univ. Grenoble Alpes, Irstea, UR EMGR, 2 rue de la Papeterie-BP 76, F-38402 St-Martin-d'Hères, France.*
+
+```{r setup, results="hide", echo=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(tidy=FALSE, warning=FALSE, message=FALSE,
+                      error=FALSE)
+options(citation_format = "text", max.names=2, digits=1, width = 400)
+require(bibtex)
+require(pander)
+library(nlme)
+library(dlnm)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(lubridate)
+```
+
+ To convert this script to a pdf report run *rmarkdown::render("LV_JSDM.Rmd", "pdf_document")*
+
+
+# Introduction
+
+In recent years there has been an increasing interest in using joint species distribution models (JSDM) to try to infer biotic interactions between species. Several simulations studies [see @Zurell-2018] have shown that JSDM can failed to distinguish between different type of biotic interactions (+,-) vs. (-,-). We still however lack a theorethical framework to derctly derive the the mean and covariance of a JSDM from the classical modeles of species competition (such as the competitive Lotka-Volterra model). Here we show that the classical approximation of a stochastic Lotka Volterra model by first-order Taylor expansion around its equilibrium (@Ives-2003) that has been used in numerous studies can provides clear information about our interpretation of JSDM.
+
+The general approach is to assume that we fit a JSDM to stationnary distribution of the communities where a residual temporal environmental variability leads to the observed spatial variability of the communities composition (thus we assume in a first step that there are no spatial environmental variability). The Taylor expansion of the LV models can help us describe how this stationnary distribution arise from the parameters of the stochastic LV model.
+
+
+# Stochastic Lotka Volterra
+
+A form of stochastic Lotka Volterra model is [see @Ives-1999 @Ives-2003]
+
+(@foo) $$lnN_{i, t+1} - lnN_{i,t} =  r_i \times (1 - \sum_{j = 1}^S{\alpha_{ij} N_j}) + R_{i,t+1}\, .$$
+
+where $r_i$ is the intrinsic (maximum) rate of natural increase, $\alpha_{ij}$ competition coefficient describing the effect of species $j$ on species $i$. Environmental stochasticity is incorporated through the term $R_i$ from a vector $\mathbf{R}$ that has a multivariate normal distribution with mean vector 0 and covariance matrix $\Sigma$. $\mathbf{R}$ represents the environmental temporal variation.
+
+In matrix notation this equivalent to
+
+$$
+ln\mathbf{N}_{t+1} =  ln\mathbf{N_{t}} + \mathbf{R}  \times (1 - \mathbf{A} \times \mathbf{N}) + \mathbf{R_t+1}
+$$
+
+or
+$$
+ln\mathbf{N}_{t+1} = f(ln\mathbf{N_t}, \mathbf{R_{t+1}})
+$$
+
+@Loreau-2013 presents an approach, based on @Ives-2003 (page 305), to simplify the model as a first-order normal approximation that is traditionally
+used in the theory of stochastic population dynamics. Assuming that the model has a stationary distribution with mean $N^*$, we can approximate Equation (@foo) with a first-degree Taylor expansion around $N^*$ and $\mathbf{R} = 0$ in a matrix format as:
+
+$$ln\mathbf{N}_{t+1} \approx f(ln\mathbf{N}^*, 0) + \frac{\partial f(ln\mathbf{N}^*,0)}{\partial ln\mathbf{N}} [ln\mathbf{N}_t - ln\mathbf{N}^*] + \frac{\partial f(ln\mathbf{N}^*,0)}{\partial \mathbf{R}} \mathbf{R}_{t+1}$$
+
+$$ln\mathbf{N}_{t+1} \approx f(ln\mathbf{N}^*, 0) - \frac{\partial f(ln\mathbf{N}^*,0)}{\partial ln\mathbf{N}} ln\mathbf{N}^*+ \frac{\partial f(ln\mathbf{N}^*,0)}{\partial ln\mathbf{N}} ln\mathbf{N}_t + \frac{\partial f(ln\mathbf{N}^*,0)}{\partial \mathbf{R}} \mathbf{R}_{t+1}$$
+
+which can be reorganised as:
+
+(@foo2) $$ln\mathbf{N}_{t+1} = \mathbf{A} + \mathbf{B} ln\mathbf{N}_{t} + \mathbf{E_{t+1}}$$
+
+$\mathbf{B}$ is the community matrix (or the Jacobian matrix around the equilibrium), and $\mathbf{A} = f(ln\mathbf{N}^*, 0) - \mathbf{B} ln\mathbf{N}^* = (\mathbf{I} - \mathbf{B}) ln\mathbf{N}^*$ is a constant, and $\mathbf{E_{t+1}} = \frac{\partial f(ln\mathbf{N}^*,0)}{\partial R} R_{t+1}$.
+
+The element of the community matrix are
+
+$\mathbf{B}_{i,j} = 1 - r_i \alpha_{i,j} N_j^*$
+
+# Stationnary dynamics of Equation (@foo2)
+
+The Equation (@foo2) is a multivariate autoregressive process that has a stationnary process  'provided all eigenvalue of matrix $\mathbf{B}$ lie within the unit circle' (@Ives-2003) and if $\mathbf{E}$ is normally distributed, it follows a multivariate normal distribution of mean the vector $\mu^*$ and covariance matrix $\mathbf{V}^*$ (@Ives-2003) with:
+
+$$\mu^* = (\mathbf{I} - \mathbf{B})^{-1} \mathbf{A} = (\mathbf{I} - \mathbf{B})^{-1} (\mathbf{I} - \mathbf{B}) ln\mathbf{N}^* = ln\mathbf{N}^*$$
+
+and
+
+$$\mathbf{V}^* = \mathbf{B} \mathbf{V}^* \mathbf{B}' + \mathbf{\Sigma}$$
+
+where $\mathbf{\Sigma}$ is the covariance matrix of $\mathbf{E}$.
+
+@Ives-2003 show that $\mathbf{V}^*$ can be estimated as
+
+$$Vec(\mathbf{V}^*) = (\mathbf{I} - \mathbf{B} \otimes \mathbf{B}) ^{-1} Vec(\mathbf{\Sigma})$$
+
+
+# Solving for the equilibrium of the Lotka-Volterra model
+
+In two species case if $\frac{\alpha_{1,1}}{\alpha_{2,1}} > 1 > \frac{\alpha_{1,2}}{\alpha_{2,2}}$ there is an equilibrium with the two species equal to
+
+$$N_1^* = \frac{\alpha_{2,2} - \alpha_{1,2}}{\alpha_{1,1} \alpha_{2,2} - \alpha_{1,2}\alpha_{2,1}}$$
+
+$$N_2^* = \frac{\alpha_{1,1} - \alpha_{2,1}}{\alpha_{1,1} \alpha_{2,2} - \alpha_{1,2}\alpha_{2,1}}$$
+
+
+The dynamics of the systems is increasingly complex when we increase the number of species. Limit cycles are possible when the number of specie is greater than 3, and torus or chaos are possible when the number of species is greater than 4. So solving the equilibrium is not an easy task. Finding the set of parameters is leading to a stable state is difficult for a large number of species even for 4. @Roques-2011 mights provide some guidance to choose them in dimension 4. But to start I will simply choose matrix where the inter is lower than the intra and check numerically the stability.
+
+
+# Key results from this stationnary distribution
+
+- The mean of species abundance is function of the competition parameters. So when fitting a JSDM the mean response curves are also informative about the interaction. Biotic interactions are not influencing only the matrix of covariance.
+
+- The matrix of covariance of the stationnary distribution is the combination of both the matrix of interaction $\mathbf{B}$ and the environmental matrix of covariance $\mathbf{\Sigma}$.
+
+- We have a tool to deduce how different matrix of interaction influences the matrix of covariance.
+
+
+# How the shape of the matrix of interaction $\mathbf{B}$ influences the matrice of covariance of the stationnary process?
+
+We have a tool to deduce how different matrix of interaction influences the matrix of covariance. Ideally we need to see how different competition matrix (or community matrix) translate in the covariance of the stationnary process, for set of parameters that lead to the stable coexistence of the N species. I have only started to explore that below.
+
+```{r, echo=TRUE, warning=FALSE, error=FALSE, message=TRUE}
+library(ks)
+
+# define environmental noise covariance
+ZZ      <- matrix(c(1 ,  0.5, -0.5, 0,
+                  0.5, 1  , 0.1, 0.1,
+                  -0.5, 0.1,  1,  0.5,
+                  0, 0.1, 0.5,  1),
+                  ncol = 4, nrow = 4, byrow = TRUE)
+Sigma <- t(ZZ) %*% ZZ
+
+# define param of LV and matrix B
+R <- c(1, 1, 1, 1)
+# define competition inter lower than intra...
+A <- matrix(c(1 ,  0.1, 0.15, 0.2,
+              0.1, 1  , 0.1, 0.1,
+              0.15, 0.1,  1,  0.1,
+              0.2, 0.1, 0.1,  1),
+               ncol = 4, nrow = 4, byrow = TRUE)
+
+# Define LV model function
+
+library(deSolve)
+
+LVmod <- function (Time, State, Pars) {
+    with(as.list(c(State, Pars)), {
+        dx1 = X1*(R[1] - X1*A[1,1] - X2*A[1,2] - X3*A[1,3] - X4*A[1,4])
+        dx2 = X2*(R[2] - X1*A[2,1] - X2*A[2,2] - X3*A[2,3] - X4*A[2,4])
+        dx3 = X3*(R[3] - X1*A[3,1] - X2*A[3,2] - X3*A[3,3] - X4*A[3,4])
+        dx4 = X1*(R[4] - X1*A[4,1] - X2*A[4,2] - X3*A[4,3] - X4*A[4,4])
+        return(list(c(dx1, dx2, dx3, dx4)))
+    })
+}
+
+R <- c(1, 1, 1, 1)
+
+# Show dynamics and equilibrium
+
+Pars <- list(R = R, A = A)
+State <- c(X1 = 0.1, X2 = 0.1, X3 = 0.1, X4 = 0.1)
+Time <- seq(0, 100, by = 1)
+
+out <- as.data.frame(ode(func = LVmod, y = State, parms = Pars, times = Time))
+matplot(out[,-1], type = "l", xlab = "time", ylab = "population")
+legend("topright", paste0("Species ", 1:4), lty = 1:4, col = 1:4,box.lwd = 0)
+
+
+# Compute matrix B
+B <- 1- R*unlist(out[101, -1])*A
+
+# compute covariance matrix
+I <- diag(4*4)
+Vequ <- invvec(solve(I - B  %x% B) %*%  vec(Sigma), ncol = 4, nrow = 4)
+
+# equilibrium abundance
+print(out[101, -1])
+
+# stationary covariance of the Taylor expansion
+print(Vequ)
+
+
+```
+
+# Compare an symmetric and asymmetric competition matrix
+
+
+```{r, echo=TRUE, warning=FALSE, error=FALSE, message=TRUE}
+
+# define competition inter lower than intra...
+A <- matrix(c(1 ,  0.1,  0.1, 0.1,
+              0.1,  1  , 0.1,  0.1,
+              0.1, 0.1,   1,   0.1,
+              0.1, 0.1,  0.1,   1 ),
+               ncol = 4, nrow = 4, byrow = TRUE)
+
+Pars <- list(R = R, A = A)
+State <- c(X1 = 0.1, X2 = 0.1, X3 = 0.1, X4 = 0.1)
+Time <- seq(0, 100, by = 1)
+
+out <- as.data.frame(ode(func = LVmod, y = State, parms = Pars, times = Time))
+matplot(out[,-1], type = "l", xlab = "time", ylab = "population")
+legend("topright", paste0("Species ", 1:4), lty = 1:4, col = 1:4,box.lwd = 0)
+
+# Compute matrix B
+B <- 1- R*unlist(out[101, -1])*A
+
+# compute covariance matrix
+I <- diag(4*4)
+Vequ1 <- invvec(solve(I - B  %x% B) %*%  vec(Sigma), ncol = 4, nrow = 4)
+
+
+# define competition inter lower than intra...
+A <- matrix(c(1 ,  0.1,  0.1, 0.1,
+              -0.1,  1  , 0.1,  0.1,
+              -0.1, -0.1,   1,   0.1,
+              -0.1, -0.1,  -0.1,   1 ),
+               ncol = 4, nrow = 4, byrow = TRUE)
+
+Pars <- list(R = R, A = A)
+State <- c(X1 = 0.1, X2 = 0.1, X3 = 0.1, X4 = 0.1)
+Time <- seq(0, 100, by = 1)
+
+out <- as.data.frame(ode(func = LVmod, y = State, parms = Pars, times = Time))
+matplot(out[,-1], type = "l", xlab = "time", ylab = "population")
+legend("topright", paste0("Species ", 1:4), lty = 1:4, col = 1:4,box.lwd = 0)
+
+# Compute matrix B
+B <- 1- R*unlist(out[101, -1])*A
+
+# compute covariance matrix
+I <- diag(4*4)
+Vequ2 <- invvec(solve(I - B  %x% B) %*%  vec(Sigma), ncol = 4, nrow = 4)
+
+
+# stationary covariance of the Taylor expansion of the two matrices
+print(Vequ1)
+print(Vequ2)
+plot(Vequ1, Vequ2)
+
+```
+
+
+So as in @Zurell-2018 we find that having $\alpha_{i,j}$ and $\alpha_{j,i}$ both negative gives the same signe of covariance than having $\alpha_{i,j}$ negative and $\alpha_{j,i}$ positive. The value of the equilibrium abundance are however very different between the two cases.
+
+# TODO
+
+* find a more general way to explore how different competition matrix translate into different covariance in more general way.
+
+* this is so far based on species abundance, but most JSDM work with presence / absence. Is it possible to derive the probability of presence/absence and co-occurence from the LV model approximation we have here?
+
+
+# References
+
