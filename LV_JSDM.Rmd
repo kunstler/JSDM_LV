@@ -1,5 +1,5 @@
 ---
-title: "How to link JSDM models to stochastic Lotka-Volterra models?"
+title: "What stochastic Lotka-Volterra models tell us about JSDM models?"
 author: "Georges Kunstler"
 bibliography: references.bib
 csl: "ecology.csl"
@@ -19,7 +19,6 @@ options(citation_format = "text", max.names=2, digits=1, width = 400)
 require(bibtex)
 require(pander)
 library(nlme)
-library(dlnm)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
@@ -28,10 +27,29 @@ library(lubridate)
 
  To convert this script to a pdf report run *rmarkdown::render("LV_JSDM.Rmd", "pdf_document")*
 
+# Abstract
+
+In recent years there has been an increasing interest
+in using joint species distribution models (JSDM) to try to infer biotic
+interactions between species from static species co-occurrence or co-abundance data. Several
+simulations studies (see Zurell et al. 2018) have shown that JSDM can failed to
+distinguish between different type of biotic interactions (+,-) vs. (-,-). We
+still however lack a theoretical framework to directly derive the mean and
+covariance of a JSDM from the classical models of species interaction (such as
+the Lotka-Volterra model). Here we show that the classical approximation of a
+stochastic Lotka Volterra model by first-order Taylor expansion around its
+dynamic equilibrium initially proposed by Ives et al. (2003) can provides clear
+information about our interpretation of JSDM. This shows, formally, that the
+sign of the co-variance matrix of the JSDM cannot distinguish between
+interactions (+,-) vs. (-,-). Besides, the covariance of the JSDM, the
+abundance and or the prevalence of the species are also influenced by the
+competitive interactions. A key conclusion from this analysis is that
+population dynamics data are crucial to disentangle biotic interactions from
+environmental effects.
 
 # Introduction
 
-In recent years there has been an increasing interest in using joint species distribution models (JSDM) to try to infer biotic interactions between species. Several simulations studies [see @Zurell-2018] have shown that JSDM can failed to distinguish between different type of biotic interactions (+,-) vs. (-,-). We still however lack a theorethical framework to derctly derive the the mean and covariance of a JSDM from the classical modeles of species competition (such as the competitive Lotka-Volterra model). Here we show that the classical approximation of a stochastic Lotka Volterra model by first-order Taylor expansion around its equilibrium (@Ives-2003) that has been used in numerous studies can provides clear information about our interpretation of JSDM.
+In recent years there has been an increasing interest in using joint species distribution models (JSDM) to try to infer biotic interactions between species. Several simulations studies [see @Zurell-2018] have shown that JSDM can failed to distinguish between different type of biotic interactions (+,-) vs. (-,-). We still however lack a theorethical framework to directly derive the mean and covariance of a JSDM from the classical modeles of species competition (such as the competitive Lotka-Volterra model). Here we show that the classical approximation of a stochastic Lotka Volterra model by first-order Taylor expansion around its equilibrium [@Ives-2003] that has been used in numerous studies can provides clear information about our interpretation of JSDM.
 
 The general approach is to assume that we fit a JSDM to stationnary distribution of the communities where a residual temporal environmental variability leads to the observed spatial variability of the communities composition (thus we assume in a first step that there are no spatial environmental variability). The Taylor expansion of the LV models can help us describe how this stationnary distribution arise from the parameters of the stochastic LV model.
 
@@ -40,41 +58,56 @@ The general approach is to assume that we fit a JSDM to stationnary distribution
 
 A form of stochastic Lotka Volterra model is [see @Ives-1999 @Ives-2003]
 
-(@foo) $$lnN_{i, t+1} - lnN_{i,t} =  r_i \times (1 - \sum_{j = 1}^S{\alpha_{ij} N_j}) + R_{i,t+1}\, .$$
+\begin{equation}
+\label{eq:LV}
+lnN_{i, t+1} - lnN_{i,t} =  r_i \times (1 - \sum_{j = 1}^S{\alpha_{ij} N_j}) + R_{i,t+1}\, .
+\end{equation}
 
 where $r_i$ is the intrinsic (maximum) rate of natural increase, $\alpha_{ij}$ competition coefficient describing the effect of species $j$ on species $i$. Environmental stochasticity is incorporated through the term $R_i$ from a vector $\mathbf{R}$ that has a multivariate normal distribution with mean vector 0 and covariance matrix $\Sigma$. $\mathbf{R}$ represents the environmental temporal variation.
 
 In matrix notation this equivalent to
 
-$$
+\begin{equation}
+\label{eq:LVm}
 ln\mathbf{N}_{t+1} =  ln\mathbf{N_{t}} + \mathbf{R}  \times (1 - \mathbf{A} \times \mathbf{N}) + \mathbf{R_t+1}
-$$
+\end{equation}
 
-or
-$$
+or 
+
+\begin{equation}
+\label{eq:LVm2}
 ln\mathbf{N}_{t+1} = f(ln\mathbf{N_t}, \mathbf{R_{t+1}})
-$$
+\end{equation}
 
 @Loreau-2013 presents an approach, based on @Ives-2003 (page 305), to simplify the model as a first-order normal approximation that is traditionally
-used in the theory of stochastic population dynamics. Assuming that the model has a stationary distribution with mean $N^*$, we can approximate Equation (@foo) with a first-degree Taylor expansion around $N^*$ and $\mathbf{R} = 0$ in a matrix format as:
+used in the theory of stochastic population dynamics. Assuming that the model has a stationary distribution with mean $N^*$, we can approximate equation  \ref{LV} with a first-degree Taylor expansion around $N^*$ and $\mathbf{R} = 0$ in a matrix format as:
 
-$$ln\mathbf{N}_{t+1} \approx f(ln\mathbf{N}^*, 0) + \frac{\partial f(ln\mathbf{N}^*,0)}{\partial ln\mathbf{N}} [ln\mathbf{N}_t - ln\mathbf{N}^*] + \frac{\partial f(ln\mathbf{N}^*,0)}{\partial \mathbf{R}} \mathbf{R}_{t+1}$$
+\begin{equation}
+\label{eq:TAYLOR}
+ln\mathbf{N}_{t+1} \approx f(ln\mathbf{N}^*, 0) + \frac{\partial f(ln\mathbf{N}^*,0)}{\partial ln\mathbf{N}} [ln\mathbf{N}_t - ln\mathbf{N}^*] + \frac{\partial f(ln\mathbf{N}^*,0)}{\partial \mathbf{R}} \mathbf{R}_{t+1}
+\end{equation}
 
-$$ln\mathbf{N}_{t+1} \approx f(ln\mathbf{N}^*, 0) - \frac{\partial f(ln\mathbf{N}^*,0)}{\partial ln\mathbf{N}} ln\mathbf{N}^*+ \frac{\partial f(ln\mathbf{N}^*,0)}{\partial ln\mathbf{N}} ln\mathbf{N}_t + \frac{\partial f(ln\mathbf{N}^*,0)}{\partial \mathbf{R}} \mathbf{R}_{t+1}$$
+\begin{equation}
+\label{eq:TAYLORb}
+ln\mathbf{N}_{t+1} \approx f(ln\mathbf{N}^*, 0) - \frac{\partial f(ln\mathbf{N}^*,0)}{\partial ln\mathbf{N}} ln\mathbf{N}^*+ \frac{\partial f(ln\mathbf{N}^*,0)}{\partial ln\mathbf{N}} ln\mathbf{N}_t + \frac{\partial f(ln\mathbf{N}^*,0)}{\partial \mathbf{R}} \mathbf{R}_{t+1}
+\end{equation}
 
 which can be reorganised as:
 
-(@foo2) $$ln\mathbf{N}_{t+1} = \mathbf{A} + \mathbf{B} ln\mathbf{N}_{t} + \mathbf{E_{t+1}}$$
+\begin{equation}
+\label{eq:MAR}
+ln\mathbf{N}_{t+1} = \mathbf{A} + \mathbf{B} ln\mathbf{N}_{t} + \mathbf{E_{t+1}}
+\end{equation}
 
-$\mathbf{B}$ is the community matrix (or the Jacobian matrix around the equilibrium), and $\mathbf{A} = f(ln\mathbf{N}^*, 0) - \mathbf{B} ln\mathbf{N}^* = (\mathbf{I} - \mathbf{B}) ln\mathbf{N}^*$ is a constant, and $\mathbf{E_{t+1}} = \frac{\partial f(ln\mathbf{N}^*,0)}{\partial R} R_{t+1}$.
+$\mathbf{B}$ is the community matrix (or the Jacobian matrix around the equilibrium), and $\mathbf{A} = f(ln\mathbf{N}^*, 0) - \mathbf{B} ln\mathbf{N}^* = (\mathbf{I} - \mathbf{B}) ln\mathbf{N}^*$ is a constant, and $\mathbf{E_{t+1}} = \frac{\partial f(ln\mathbf{N}^*,0)}{\partial R} R_{t+1}=R_{t+1}$.
 
 The element of the community matrix are
 
-$\mathbf{B}_{i,j} = 1 - r_i \alpha_{i,j} N_j^*$
+$$\mathbf{B}_{i,j} = 1 - r_i \alpha_{i,j} N_j^*$$
 
-# Stationnary dynamics of Equation (@foo2)
+# Stationary dynamics of Equation \ref{MAR}
 
-The Equation (@foo2) is a multivariate autoregressive process that has a stationnary process  'provided all eigenvalue of matrix $\mathbf{B}$ lie within the unit circle' (@Ives-2003) and if $\mathbf{E}$ is normally distributed, it follows a multivariate normal distribution of mean the vector $\mu^*$ and covariance matrix $\mathbf{V}^*$ (@Ives-2003) with:
+The Equation \ref{MAR} is a multivariate autoregressive process that has a stationary process  'provided all eigenvalue of matrix $\mathbf{B}$ lie within the unit circle' [@Ives-2003] and if $\mathbf{E}$ is normally distributed, it follows a multivariate normal distribution of mean the vector $\mu^*$ and covariance matrix $\mathbf{V}^*$ [@Ives-2003] with:
 
 $$\mu^* = (\mathbf{I} - \mathbf{B})^{-1} \mathbf{A} = (\mathbf{I} - \mathbf{B})^{-1} (\mathbf{I} - \mathbf{B}) ln\mathbf{N}^* = ln\mathbf{N}^*$$
 
@@ -82,7 +115,7 @@ and
 
 $$\mathbf{V}^* = \mathbf{B} \mathbf{V}^* \mathbf{B}' + \mathbf{\Sigma}$$
 
-where $\mathbf{\Sigma}$ is the covariance matrix of $\mathbf{E}$.
+where $\mathbf{\Sigma}$ is the covariance matrix of $\mathbf{E}$ (identical to $R$).
 
 @Ives-2003 show that $\mathbf{V}^*$ can be estimated as
 
@@ -97,6 +130,117 @@ $$N_1^* = \frac{\alpha_{2,2} - \alpha_{1,2}}{\alpha_{1,1} \alpha_{2,2} - \alpha_
 
 $$N_2^* = \frac{\alpha_{1,1} - \alpha_{2,1}}{\alpha_{1,1} \alpha_{2,2} - \alpha_{1,2}\alpha_{2,1}}$$
 
+Thus $\mathbf{B}_{i,j} = 1 - r_i \alpha_{i,j} N_j^* = 1 - r_i \alpha_{i,j}\frac{\alpha_{i,i} - \alpha_{j,i}}{\alpha_{j,j} \alpha_{i,i} - \alpha_{j,i}\alpha_{i,j}}$
+
+if $\alpha_{j,i}=alpha_{i,j}=1$, and $r_i = r_j = 1$ then 
+
+$$\mathbf{B}_{i,j} = 1 - \alpha_{i,j}\frac{1 - \alpha_{j,i}}{1 - \alpha_{j,i}\alpha_{i,j}} =\frac{1 - \alpha_{i,j}}{1 - \alpha_{j,i}\alpha_{i,j}}$$
+
+
+## Numerical application for 2 species
+
+With no environmental covariance
+
+```{r, echo=TRUE, warning=FALSE, error=FALSE, message=TRUE}
+library(ks)
+
+# define environmental noise covariance
+ZZ <- diag(2)
+Sigma <- t(ZZ) %*% ZZ
+
+# define param of LV and matrix B
+# define competition inter lower than intra...
+A <- matrix(c(1 ,  0.1, 
+              0.11, 1 ),
+               ncol = 2, nrow = 2, byrow = TRUE)
+# Equlibrium
+compute_Eq_2 <- function(A){
+ N1 <- (1-A[1,2])/(1-A[1,2]*A[2,1])
+ N2 <- (1-A[2,1])/(1-A[1,2]*A[2,1])
+ return(c(N1, N2))
+}
+
+compute_B_V <- function(A, Sigma, Eq){
+ # Check equilibrium conditions
+ eq_vec <-c(A[1,1]/A[2,1],A[1,2]/A[2,2])     
+ # if(! max(eq_vec) > 1 ) stop(paste0('no equilibrium ',eq_vec))
+ # if(! min(eq_vec) < 1 ) stop(paste0('no equilibrium ',eq_vec))
+ # Compute matrix B
+ B <- 1- Eq*A
+ # compute covariance matrix
+ I <- diag(2*2)
+# stationary covariance of the Taylor expansion
+ Vequ <- invvec(solve(I - B  %x% B) %*%  vec(Sigma), ncol = 2, nrow = 2)
+ return(list(V = Vequ,B = B, A = A))
+}
+
+A <- matrix(c(1 ,  -0.1, 
+              -0.11, 1 ),
+               ncol = 2, nrow = 2, byrow = TRUE)
+res1 <- compute_B_V(A, Sigma, compute_Eq_2(A))
+
+A <- matrix(c(1 ,  0.1, 
+              0.11, 1 ),
+               ncol = 2, nrow = 2, byrow = TRUE)
+res2 <- compute_B_V(A, Sigma, compute_Eq_2(A))
+
+plot(c(res1$A[1,2], res1$A[2,1]), c(res1$V[1,2], res1$V[2,1]))
+plot(c(res2$A[1,2], res2$A[2,1]), c(res2$V[1,2], res2$V[2,1]))
+print(Vequ)
+print(B)
+
+# image plot
+matrix.image <- function(A, x=NULL, y=NULL, col=rainbow(100,start=0.67,end=0),
+             bw=FALSE, do.contour=FALSE, do.legend=TRUE,add.line = FALSE, v = NA, vq = NA, ...) {
+ if(do.legend) layout(mat=cbind(matrix(1,5,5),rep(2,5)));
+ par(mar=c(6,5,3,2));
+ if(is.null(x)) x=1:ncol(A);
+ if(is.null(y)) y=1:nrow(A);
+ nx=length(x); ny=length(y);
+ x1=c(1.5*x[1]-0.5*x[2],1.5*x[nx]-0.5*x[nx-1]);
+ y1=c(1.5*y[1]-0.5*y[2],1.5*y[ny]-0.5*y[ny-1]);
+ if(bw) col=grey( (200:50)/200 );
+ image(list(x=x,y=y,z=t(A)),xlim=x1,ylim=rev(y1),col=col,cex.axis=1.5,cex.lab=1.5,bty="u",...);
+ abline(v=range(x1)); abline(h=range(y1));
+ if(add.line){
+  abline(v = v, col = "green")
+  abline(v = vq, col = "green", lty= 2)
+  abline(h = v, col = "green")
+  abline(h = vq, col = "green", lty= 2)
+ }
+ if(do.contour) contour(x,y,t(A),nlevels=5,labcex=1.2,add=TRUE);
+
+ if(do.legend) {
+    l.y=seq(min(A),max(A),length=100);
+    par(mar=c(6,2,3,1))
+    image(list(x=1:2,y=l.y,z=rbind(l.y,l.y)),col=col,bty="o",xaxt="n",yaxt="n");
+    axis(side=2,cex.axis=1.5,at=pretty(seq(min(A),max(A),length=10)));
+ }
+}
+
+
+#Do a matrix as in Zurell
+param <- seq(-0.9,0.9, length.out = 100)
+mat_res <- matrix(NA, 100, 100)
+for (i in 1:100){
+  for (j in 1:100){
+  A <- matrix(c(1 ,  param[i], 
+              param[j]+0.001, 1 ),
+              ncol = 2, nrow = 2,
+              byrow = TRUE)
+  res <- compute_B_V(A, Sigma, compute_Eq_2(A))
+  mat_res[i,j] <- res$V[1,2]
+  }
+}
+mat_res[mat_res < -1e2] <- -1e2
+matrix.image(mat_res, param, param)
+
+image(mat_res)
+
+```
+
+
+## Equilibrium for more than 2 species
 
 The dynamics of the systems is increasingly complex when we increase the number of species. Limit cycles are possible when the number of specie is greater than 3, and torus or chaos are possible when the number of species is greater than 4. So solving the equilibrium is not an easy task. Finding the set of parameters is leading to a stable state is difficult for a large number of species even for 4. @Roques-2011 mights provide some guidance to choose them in dimension 4. But to start I will simply choose matrix where the inter is lower than the intra and check numerically the stability.
 
@@ -238,12 +382,157 @@ plot(Vequ1, Vequ2)
 
 So as in @Zurell-2018 we find that having $\alpha_{i,j}$ and $\alpha_{j,i}$ both negative gives the same signe of covariance than having $\alpha_{i,j}$ negative and $\alpha_{j,i}$ positive. The value of the equilibrium abundance are however very different between the two cases.
 
+
+We can also test a model with no covariance in the environmental noise $R$.
+
+```{r, echo=TRUE, warning=FALSE, error=FALSE, message=TRUE}
+
+# define competition inter lower than intra...
+A <- matrix(c(1 ,  0.1,  0.1, 0.1,
+              0.1,  1  , 0.1,  0.1,
+              0.1, 0.1,   1,   0.1,
+              0.1, 0.1,  0.1,   1 ),
+               ncol = 4, nrow = 4, byrow = TRUE)
+
+Pars <- list(R = R, A = A)
+State <- c(X1 = 0.1, X2 = 0.1, X3 = 0.1, X4 = 0.1)
+Time <- seq(0, 100, by = 1)
+
+out <- as.data.frame(ode(func = LVmod, y = State, parms = Pars, times = Time))
+
+# Compute matrix B
+Sigma <- diag(4) # no covariance
+
+B <- 1- R*unlist(out[101, -1])*A
+# compute covariance matrix
+I <- diag(4*4)
+Vequ1 <- invvec(solve(I - B  %x% B) %*%  vec(Sigma), ncol = 4, nrow = 4)
+
+
+# define competition inter lower than intra...
+A <- matrix(c(1 , 0.1, 0.1, 0.1,
+             -0.1, 1 , 0.1, 0.1,
+             -0.1, -0.1, 1, 0.1,
+             -0.1, -0.1, -0.1, 1 ),
+             ncol = 4, nrow = 4, byrow = TRUE)
+Pars <- list(R = R, A = A)
+State <- c(X1 = 0.1, X2 = 0.1, X3 = 0.1, X4 = 0.1)
+Time <- seq(0, 100, by = 1)
+
+out <- as.data.frame(ode(func = LVmod, y = State, parms = Pars, times = Time))
+
+# Compute matrix B
+B <- 1- R*unlist(out[101, -1])*A
+
+# compute covariance matrix
+I <- diag(4*4)
+Vequ2 <- invvec(solve(I - B  %x% B) %*%  vec(Sigma), ncol = 4, nrow = 4)
+
+
+# stationary covariance of the Taylor expansion of the two matrices
+print(Vequ1)
+print(Vequ2)
+plot(Vequ1, Vequ2)
+
+# with different value per pair of species and compare three case -/- -/+ and +/+
+A <- matrix(c(1 ,  -0.1,  -0.2, -0.4,
+              -0.1,  1  , -0.2,  -0.4,
+              -0.1, -0.1,   1,   -0.4,
+              -0.1, -0.1,  -0.2,   1 ),
+               ncol = 4, nrow = 4, byrow = TRUE)
+
+Pars <- list(R = R, A = A)
+State <- c(X1 = 0.1, X2 = 0.1, X3 = 0.1, X4 = 0.1)
+Time <- seq(0, 100, by = 1)
+
+out <- as.data.frame(ode(func = LVmod, y = State, parms = Pars, times = Time))
+
+# Compute matrix B
+B <- 1- R*unlist(out[101, -1])*A
+
+# compute covariance matrix
+I <- diag(4*4)
+VequA <- invvec(solve(I - B  %x% B) %*%  vec(Sigma), ncol = 4, nrow = 4)
+
+par(mfrow = c(2,2))
+image(VequA)
+image(A)
+image(B)
+par(mfrow = c(1,2))
+plot(VequA, A)
+plot(VequA, B)
+
+# + / -
+A <- matrix(c(1 ,  0.1,  0.2, 0.4,
+              -0.1,  1  , 0.2,  0.4,
+              -0.1, -0.1,   1,   0.4,
+              -0.1, -0.1,  -0.2,   1 ),
+               ncol = 4, nrow = 4, byrow = TRUE)
+
+Pars <- list(R = R, A = A)
+State <- c(X1 = 0.1, X2 = 0.1, X3 = 0.1, X4 = 0.1)
+Time <- seq(0, 100, by = 1)
+
+out <- as.data.frame(ode(func = LVmod, y = State, parms = Pars, times = Time))
+
+# Compute matrix B
+B <- 1- R*unlist(out[101, -1])*A
+
+# compute covariance matrix
+I <- diag(4*4)
+VequB <- invvec(solve(I - B  %x% B) %*%  vec(Sigma), ncol = 4, nrow = 4)
+
+par(mfrow = c(2,2))
+image(VequB)
+image(A)
+image(B)
+par(mfrow = c(1,2))
+plot(VequB, A)
+plot(VequB, B)
+
+# + / -
+A <- matrix(c(1 ,  0.1,  0.2, 0.4,
+              0.1,  1  , 0.2,  0.4,
+              0.1, 0.1,   1,   0.4,
+              0.1, 0.1,  0.2,   1 ),
+               ncol = 4, nrow = 4, byrow = TRUE)
+
+Pars <- list(R = R, A = A)
+State <- c(X1 = 0.1, X2 = 0.1, X3 = 0.1, X4 = 0.1)
+Time <- seq(0, 100, by = 1)
+
+out <- as.data.frame(ode(func = LVmod, y = State, parms = Pars, times = Time))
+
+# Compute matrix B
+B <- 1- R*unlist(out[101, -1])*A
+
+# compute covariance matrix
+I <- diag(4*4)
+VequC <- invvec(solve(I - B  %x% B) %*%  vec(Sigma), ncol = 4, nrow = 4)
+par(mfrow = c(2,2))
+image(VequC)
+image(A)
+image(B)
+par(mfrow = c(1,2))
+plot(VequC, A)
+plot(VequC, B)
+
+par(mfrow = c(1,2))
+plot(VequA, VequB)
+plot(VequA, VequC)
+
+
+
+```
+
+
 # TODO
 
 * find a more general way to explore how different competition matrix translate into different covariance in more general way.
 
 * this is so far based on species abundance, but most JSDM work with presence / absence. Is it possible to derive the probability of presence/absence and co-occurence from the LV model approximation we have here?
 
+* use stochastic differential equation for the simulation of the LV model.
 
 # References
 
